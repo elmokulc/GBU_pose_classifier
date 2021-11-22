@@ -1,0 +1,5 @@
+*.pyc
+*.tif
+*.h5
+*.json
+*.zip
