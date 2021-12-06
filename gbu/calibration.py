@@ -20,6 +20,8 @@
 import copy
 import itertools
 import os
+import threading
+import time
 ################################################################################
 # IMPORTS
 from collections import OrderedDict
@@ -35,8 +37,6 @@ from cv2 import aruco
 from scipy import optimize
 from skimage import io
 from tqdm import tqdm
-import time
-import threading
 
 import gbu
 
@@ -1241,8 +1241,8 @@ class ImageBatchCompositePose(gbu.utils.ImageBatch):
         if keys is None:
             keys = [keys for keys in self.composites.keys()]
 
-        import plotly.graph_objects as go
         import numpy as np
+        import plotly.graph_objects as go
 
         for key in keys:
             # x, y, z = zip(*self.composites[key].tvecs)
@@ -1470,5 +1470,3 @@ class CompositeMetricCalibration():
             compo, marker_coeff=self.sol.x[0])
 
         return self.composite_metric
-
-

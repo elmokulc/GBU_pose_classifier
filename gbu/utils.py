@@ -22,6 +22,7 @@ import itertools
 import json
 import os
 import pickle
+import random
 import warnings
 
 import cv2
@@ -734,17 +735,16 @@ def cycle_permutation_residuals(edges_ids, poses, size_of_cycle=1):
     return permutations, R_residuals, T_residuals
 
 
-def get_cycles(data, graph, root=None, atomic_cycle=False, kind="basis"):
+def get_cycles(data, graph, root=None, atomic_cycle=False, kind="basis", seed=None):
     marker_dicin, marker_dicout = string_map(data.markers.label.unique(),
                                              prefix="m")
     im_dicin, im_dicout = string_map(data.images.unique(),
                                      prefix="i")
-    root = None
     if root is not None:
         root = marker_dicin[root]
 
     if kind == "basis":
-        raw_cycles = nx.cycle_basis(graph, root=root)
+        raw_cycles = cycle_basis(graph, root=root, seed=seed)
 
     cycles = []
     for rc in raw_cycles:
@@ -868,19 +868,19 @@ def occurency_analysis(data, alpha_criterion=1.5):
             data.loc[bad_pose, ('flags', 'graph', 'rejected')] = False
 
     ambigus_class = data.loc[(data.flags.pose == True) &
-                            (data.flags.graph.processed == True) &
-                            (data.flags.graph.validated == False) &
-                            (data.flags.graph.rejected == False)]
+                             (data.flags.graph.processed == True) &
+                             (data.flags.graph.validated == False) &
+                             (data.flags.graph.rejected == False)]
 
     bad_class = data.loc[(data.flags.pose == True) &
-                        (data.flags.graph.processed == True) &
-                        (data.flags.graph.validated == False) &
-                        (data.flags.graph.rejected == True)]
+                         (data.flags.graph.processed == True) &
+                         (data.flags.graph.validated == False) &
+                         (data.flags.graph.rejected == True)]
 
     good_class = data.loc[(data.flags.pose == True) &
-                         (data.flags.graph.processed == True) &
-                         (data.flags.graph.validated == True) &
-                         (data.flags.graph.rejected == False)]
+                          (data.flags.graph.processed == True) &
+                          (data.flags.graph.validated == True) &
+                          (data.flags.graph.rejected == False)]
 
     print("full data \t= {0} poses".format(data.shape[0]))
     print("no valid pose \t= {0} poses".format(no_pose_class.shape[0]))
@@ -899,15 +899,20 @@ def check_pose_proximity(data):
     return None
 
 
-def get_good_class(data, criterion=1, deph_max=10, alpha_criterion=1.5, atomic_cycle=False):
+def check_graph_connection(data):
+    G = get_graph(data)
+    return nx.is_connected(G)
 
-    no_pose_class, out_of_cycle_class, ambigus_class, bad_class, good_class = occurency_analysis(
+
+def get_good_core(data, criterion=1, deph_max=10, alpha_criterion=1.5, atomic_cycle=False):
+
+    no_pose_core, out_of_cycle_core, ambigus_core, bad_core, good_core = occurency_analysis(
         data=data, alpha_criterion=alpha_criterion)
 
-    if len(ambigus_class) > 0:
+    if len(ambigus_core) > 0:
         deph = 0
         while deph < deph_max:
-            new_data = pd.concat([good_class, ambigus_class])
+            new_data = pd.concat([good_core, ambigus_core])
             new_graph = get_graph(new_data)
             if nx.is_connected(new_graph):
                 new_central_mk = get_central_marker(new_data)
@@ -915,23 +920,111 @@ def get_good_class(data, criterion=1, deph_max=10, alpha_criterion=1.5, atomic_c
                     data=new_data, graph=new_graph, root=new_central_mk, atomic_cycle=atomic_cycle)
                 new_data_out = get_occurencies(
                     data=new_data, cycles=new_cycles, criterion=criterion)
-                ret, ret, ambigus_class, bad_class, good_class = occurency_analysis(
+                ret, ret, ambigus_core, bad_core, good_core = occurency_analysis(
                     data=new_data_out, alpha_criterion=alpha_criterion)
-                if (len(ambigus_class) == 0) or len(pd.concat([good_class, ambigus_class])) == len(new_data):
+                if (len(ambigus_core) == 0) or len(pd.concat([good_core, ambigus_core])) == len(new_data):
                     break
                 deph += 1
             else:
                 print("Graph not connected, end recursion here")
                 break
 
-    return good_class.sort_index()
+    return good_core.sort_index()
+
+
+def cycle_basis(G, root=None, seed=None):
+    """
+    A rewritting of networkx cycles basis computation in order to handle 
+    random behaviours.
+
+    Returns a list of cycles which form a basis for cycles of G.
+
+    A basis for cycles of a network is a minimal collection of
+    cycles such that any cycle in the network can be written
+    as a sum of cycles in the basis.  Here summation of cycles
+    is defined as "exclusive or" of the edges. Cycle bases are
+    useful, e.g. when deriving equations for electric circuits
+    using Kirchhoff's Laws.
+
+    Source : https://networkx.org/documentation/stable/_modules/networkx/algorithms/cycles.html#cycle_basis
+
+    Parameters
+    ----------
+    G : NetworkX Graph
+    root : node, optional
+       Specify starting node for basis.
+
+    Returns
+    -------
+    A list of cycle lists.  Each cycle list is a list of nodes
+    which forms a cycle (loop) in G.
+
+    Examples
+    --------
+    >>> G = nx.Graph()
+    >>> nx.add_cycle(G, [0, 1, 2, 3])
+    >>> nx.add_cycle(G, [0, 3, 4, 5])
+    >>> print(nx.cycle_basis(G, 0))
+    [[3, 4, 5, 0], [1, 2, 3, 0]]
+
+    Notes
+    -----
+    This is adapted from algorithm CACM 491 [1]_.
+
+    References
+    ----------
+    .. [1] Paton, K. An algorithm for finding a fundamental set of
+       cycles of a graph. Comm. ACM 12, 9 (Sept 1969), 514-518.
+
+    See Also
+    --------
+    simple_cycles
+    """
+    random.seed(seed)
+    np.random.seed(seed)
+    gnodes = set(G.nodes())
+    cycles = []
+    while gnodes:  # loop over connected components
+        if root is None:
+            if seed is not None:
+                root = sorted(list(gnodes))[
+                    np.random.randint(len(list(gnodes)))]
+                gnodes.remove(root)
+            else:
+                root = gnodes.pop()
+
+        stack = [root]
+        pred = {root: root}
+        used = {root: set()}
+        while stack:  # walk the spanning tree finding cycles
+            z = stack.pop()  # use last-in so cycles easier to find
+            zused = used[z]
+            for nbr in G[z]:
+                if nbr not in used:  # new node
+                    pred[nbr] = z
+                    stack.append(nbr)
+                    used[nbr] = {z}
+                elif nbr == z:  # self loops
+                    cycles.append([z])
+                elif nbr not in zused:  # found a cycle
+                    pn = used[nbr]
+                    cycle = [nbr, z]
+                    p = pred[z]
+                    while p not in pn:
+                        cycle.append(p)
+                        p = pred[p]
+                    cycle.append(p)
+                    cycles.append(cycle)
+                    used[nbr].add(z)
+        gnodes -= set(pred)
+        root = None
+    return cycles
 
 
 class ImageBatch(gbu.core.Container):
     """
     A class to process images containing markers as batches.
-    %load_ext autoreload
-    %autoreload 2
+
     """
 
     def __init__(self,
@@ -1043,21 +1136,29 @@ class ImageBatch(gbu.core.Container):
         data_temp = merge_dataFrames(self.data_pose, self.data_detect)
         return merge_dataFrames(data_temp, self.data_img)
 
-    def get_graph_data(self, plot_markers=False, criterion=1, deph_max=10, alpha_criterion=1.5, atomic_cycle=False):
+    def get_graph_data(self, plot_markers=False, criterion=1, deph_max=10, alpha_criterion=1.5, atomic_cycle=False, enabled_central_mk=True):
         data = self.merge_all()
         graph = get_graph(data)
-        central_mk = get_central_marker(data)
+        central_mk = get_central_marker(data) if enabled_central_mk else None
         cycles = get_cycles(data=data, graph=graph,
                             atomic_cycle=atomic_cycle, root=central_mk)
         self.data_raw = get_occurencies(
             data=data, cycles=cycles, criterion=criterion)
-        self.data_graph = get_good_class(
+        self.data_graph = get_good_core(
             data=self.data_raw,
             criterion=criterion,
             deph_max=deph_max,
             alpha_criterion=alpha_criterion,
             atomic_cycle=atomic_cycle)
 
+        self.markers_lost_checking()
+
+        if plot_markers:
+            self.draw_xyz()
+
+        return self.data_graph
+
+    def markers_lost_checking(self):
         group_calib_img = self.data_graph.images.unique()
         group_calib_detect = self.data_graph.detects.unique()
         group_calib_pose = self.data_graph.poses.unique()
@@ -1071,11 +1172,6 @@ class ImageBatch(gbu.core.Container):
         mks_missing = set(mks_in) - set(mks_out)
         if len(mks_missing) != 0:
             print("/!\\ we lose marker(s) : {0}".format(mks_missing))
-
-        if plot_markers:
-            self.draw_xyz()
-
-        return self.data_graph
 
     def draw_xyz(self, data=None, plot_image_type="jpg"):
         if data is None:

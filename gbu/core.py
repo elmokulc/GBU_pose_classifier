@@ -162,15 +162,17 @@ def _cost_pnp(X, p3d, p2dt, weights, camera_matrix, distortion_coefficients):
             ).flatten()
 
 
-def estimate_pose(points2D,
-                  points3D,
-                  camera_matrix=np.eye(3),
-                  distortion_coefficients=np.zeros(5),
-                  method="gbu", 
-                  weights=1.0,
-                  rvec0=np.array([0.0, 0.0, 0.0]),                
-                  tvec0=np.array([0.0, 0.0, 1.0]),
-                  **kwargs):
+def estimate_pose(
+    points2D,
+    points3D,
+    camera_matrix=np.eye(3),
+    distortion_coefficients=np.zeros(5),
+    method="gbu",
+    weights=1.0,
+    rvec0=np.array([0.0, 0.0, 0.0]),
+    tvec0=np.array([0.0, 0.0, 1.0]),
+    **kwargs
+):
     """
     Estimates the pose.
 
@@ -227,7 +229,7 @@ def estimate_pose(points2D,
         return True, srvec, stvec, sol
     else:
         print("Composite object can't be found !")
-        return False, np.ones(3) * np.nan, np.ones(3) * np.nan, None
+        return False, np.ones(3) * np.nan,  np.ones(3) * np.nan, None
 
 
 def estimate_pose_planar(*args, **kwargs):
@@ -464,7 +466,8 @@ class CompositeMarker(Container):
         rvecs=np.zeros(3),
         tvecs=np.zeros(3),
         cameraMatrix=np.eye(3),
-        distortionCoefficients=np.zeros(5)):
+        distortionCoefficients=np.zeros(5),
+    ):
         """
         Projects the composite on a camera with given pose (rvec, tvec).
         Multiple Ni poses can be used simultanerously, in this case, rvec and
