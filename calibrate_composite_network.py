@@ -8,7 +8,7 @@ import gbu
 ################################################################################
 # SETUP
 print("#SETTING UP DATASET")
-image_directory = "./dataset14_subsample/"
+image_directory = "./dataset_subsample/"
 
 metadata = json.load(open(image_directory + "metadata.json"))
 camera_matrix = np.array(metadata["camera_matrix"])
