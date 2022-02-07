@@ -271,10 +271,10 @@ def create_pose_dataFrame():
         ("tvec", "x", ""),
         ("tvec", "y", ""),
         ("tvec", "z", ""),
-        ("flags", "graph", "processed"),
-        ("flags", "graph", "validated"),
-        ("flags", "graph", "rejected"),
-        ("flags", "pose", ""),
+        ("flag", "graph", "processed"),
+        ("flag", "graph", "validated"),
+        ("flag", "graph", "rejected"),
+        ("flag", "pose", ""),
         ("occurency", "good", ""),
         ("occurency", "bad", "")])
 
@@ -465,7 +465,7 @@ def estimate_pose(data_detect=None,
                                   ("detects", "", "")] = data_detect.index[ii]
 
                 data_pose_temp.at[row,
-                                  ("flags", "pose", "")] = _get_status(pose, status)
+                                  ("flag", "pose", "")] = _get_status(pose, status)
 
                 if pose == 0:
                     data_pose_temp.at[row,
@@ -487,9 +487,9 @@ def estimate_pose(data_detect=None,
                                           ("type", "error", "")] = np.nan
 
             row += 1
-    data_pose_temp[("flags", "graph", "processed")] = False
-    data_pose_temp[("flags", "graph", "validated")] = False
-    data_pose_temp[("flags", "graph", "rejected")] = False
+    data_pose_temp[("flag", "graph", "processed")] = False
+    data_pose_temp[("flag", "graph", "validated")] = False
+    data_pose_temp[("flag", "graph", "rejected")] = False
     data_pose_temp[("occurency", "bad", "")] = 0
     data_pose_temp[("occurency", "good", "")] = 0
     data_pose = pd.concat([data_pose, data_pose_temp]).reset_index(
@@ -803,7 +803,7 @@ def get_occurencies(data, cycles, criterion=0.25):
     for key, values in occurrency.items():
         data_out.at[key, ("occurency", "bad", "")] = values['bad']
         data_out.at[key, ("occurency", "good", "")] = values['good']
-        data_out.at[key, ("flags", "graph", "processed")] = values['processed']
+        data_out.at[key, ("flag", "graph", "processed")] = values['processed']
     return data_out
 
 

@@ -176,6 +176,7 @@ def find_geometrical_feature(targetPoseBatch, refPoseBatch=None,
     """
 
     Nim = len(targetPoseBatch.ids)
+    print(f"Choosen fixed= {fixed}")
 
     if kind == "point":
         def cost(P, Pt, rvecs, tvecs):
@@ -191,11 +192,14 @@ def find_geometrical_feature(targetPoseBatch, refPoseBatch=None,
             P0 = np.array([0., 0., 0.])  # Initial condition
             R_target2cam = data.rvecs
             T_target2cam = data.tvecs
-            sol = optimize.least_squares(
-                cost, P0, method="lm", ftol=1.e-10,
-                args=(Pt, R_target2cam, T_target2cam))
+            sol = optimize.least_squares(cost, 
+                                         P0, 
+                                         method="lm",
+                                         ftol=1.0e-12,
+                                         xtol=1.0e-12,
+                                         gtol=1.e-10,
+                                         args=(Pt, R_target2cam, T_target2cam))
             Psol = sol.x
-
             # rvec, tvec, residuals
             return np.zeros(3), Psol, cost(Psol, Pt, R_target2cam, T_target2cam).reshape(Pt.shape)
 
@@ -219,20 +223,26 @@ def find_geometrical_feature(targetPoseBatch, refPoseBatch=None,
                     data_target.rvecs[i], data_target.tvecs[i],
                     R_cam2ref[i], T_cam2ref[i])
 
-            sol = optimize.least_squares(
-                cost, P0, method="lm",
-                ftol=1.e-10,
-                args=(Pt_target, R_target2ref, T_target2ref))
+            sol = optimize.least_squares(cost,
+                                         P0,
+                                         method="lm",
+                                         ftol=1.0e-12,
+                                         xtol=1.0e-12,
+                                         gtol=1.e-10,
+                                         args=(Pt_target, R_target2ref, T_target2ref))
             Psol = sol.x
             # rvec, tvec, residuals
             return np.zeros(3), Psol, cost(
                 Psol, Pt_target, R_target2ref, T_target2ref).reshape(Pt_target.shape)
 
     if kind == "axis":
+        axis_dict = {"x":0,
+                     "y":1,
+                     "z":2,}
 
         if refPoseBatch is None:
             def unpack(X):
-                R_target2a = X[0:3]
+                R_target2a = X[:3]
                 T_target2a = np.zeros(3)
                 T_target2a[1] = X[3]
                 R_b2cam = X[4:7]
@@ -240,13 +250,13 @@ def find_geometrical_feature(targetPoseBatch, refPoseBatch=None,
                 theta = X[10:]
                 return R_target2a, T_target2a, R_b2cam, T_b2cam, theta
 
-            def cost(X, R_cam2target, T_cam2target):
+            def cost(X, R_cam2target, T_cam2target, axis):
                 R_target2a, T_target2a, R_b2cam, T_b2cam, theta = unpack(X)
                 out = np.zeros((Nim, 6))
                 for i in range(Nim):
                     # Rotation !
                     R_a2b = np.zeros(3)
-                    R_a2b[2] = theta[i]
+                    R_a2b[axis] = theta[i]
                     T_a2b = np.zeros(3)
                     # COMPOSITION
                     R_target2b, T_target2b = gbu.utils.compose_RT(
@@ -273,12 +283,18 @@ def find_geometrical_feature(targetPoseBatch, refPoseBatch=None,
                     data.tvecs[i])
             Nun = 6 + Nim + 4  # Number of unknown parameters in optimization
             X0 = np.zeros(Nun)
-            sol = optimize.least_squares(cost, X0, method="lm",
-                                         args=(R_cam2target, T_cam2target))
+            sol = optimize.least_squares(cost,
+                                         X0,
+                                         method="lm",
+                                         ftol=1.0e-12,
+                                         xtol=1.0e-12,
+                                         gtol=1.e-10,
+                                         args=(R_cam2target, T_cam2target, axis_dict[fixed]))
+            
             R_target2a, T_target2a, R_b2cam, T_b2cam, theta = unpack(sol.x)
 
             # rvec, tvec, residuals (Nim, Rvec-Tvec, x-y-z)
-            return R_target2a, T_target2a, cost(sol.x, R_cam2target, T_cam2target).reshape(Nim, -1, 3)
+            return R_target2a, T_target2a, cost(sol.x, R_cam2target, T_cam2target, axis_dict[fixed]).reshape(Nim, -1, 3)
 
         else:
             def unpack(X):
@@ -293,7 +309,7 @@ def find_geometrical_feature(targetPoseBatch, refPoseBatch=None,
                 theta = X[10:]
                 return R_target2a, T_target2a, R_b2ref, T_b2ref, theta
 
-            def cost(X, R_ref2target, T_ref2target):
+            def cost(X, R_ref2target, T_ref2target, axis):
                 """
                 Cost with residuals based on R and T (ninja style)
                 """
@@ -302,7 +318,7 @@ def find_geometrical_feature(targetPoseBatch, refPoseBatch=None,
                 for i in range(Nim):
                     # Rotation !
                     R_a2b = np.zeros(3)
-                    R_a2b[2] = theta[i]
+                    R_a2b[axis] = theta[i]
                     T_a2b = np.zeros(3)
                     # COMPOSITION
                     R_target2b, T_target2b = gbu.utils.compose_RT(
@@ -337,8 +353,13 @@ def find_geometrical_feature(targetPoseBatch, refPoseBatch=None,
             Nun = 6 + Nim + 4  # Number of unknown parameters in optimization
             X0 = np.zeros(Nun)
             X0[10:] = 1  # Init theta with non zeros angles
-            sol = optimize.least_squares(cost, X0, method="lm", ftol=1e-10,
-                                         args=(R_ref2target, T_ref2target))
+            sol = optimize.least_squares(cost, 
+                                         X0,
+                                         method="lm", 
+                                         ftol=1.0e-12,
+                                         xtol=1.0e-12,
+                                         gtol=1.e-10,
+                                         args=(R_ref2target, T_ref2target, axis_dict[fixed]))
             R_target2a, T_target2a, R_b2ref, T_b2ref, theta = unpack(sol.x)
 
             # Check if reference is reversed along z
