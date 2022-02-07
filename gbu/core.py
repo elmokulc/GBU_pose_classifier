@@ -188,7 +188,7 @@ def estimate_pose(
     * tvec0: 1d array with 3 elements, intial guess for tvec (gbu only).
     ** kwargs: extra arguments passed to scipy.optimize.least_squares (gbu only).
     """
-    if method is "cv2":
+    if method == "cv2":
         ret, rvec, tvec = cv2.solvePnP(
             np.concatenate(points3D),
             np.concatenate(points2D),
