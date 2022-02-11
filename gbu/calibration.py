@@ -1249,7 +1249,7 @@ class ImageBatchCompositePose(gbu.utils.ImageBatch):
         else:
             return locs, self.data_detect.loc[locs]
 
-    def draw_xyz_composite(self, key=None):
+    def draw_xyz_composite(self, key=None, *args, **kwargs):
         if key is None:
             key = [keys for keys in self.poseBatches.keys()][-1]
         data_img = self.data_img.copy()
@@ -1257,7 +1257,7 @@ class ImageBatchCompositePose(gbu.utils.ImageBatch):
         poseBatch = self.poseBatches[key].as_dataframe()
         poseBatch.index.names = ["images"]
         data_xyz = gbu.utils.merge_dataFrames(poseBatch, data_img)
-        self.draw_xyz(data_xyz)
+        self.draw_xyz(data_xyz, *args, **kwargs)
 
     def plot_3D_composite(self, keys=None):
 

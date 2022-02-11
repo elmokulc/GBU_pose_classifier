@@ -1173,7 +1173,7 @@ class ImageBatch(gbu.core.Container):
         if len(mks_missing) != 0:
             print("/!\\ we lose marker(s) : {0}".format(mks_missing))
 
-    def draw_xyz(self, data=None, plot_image_type="jpg"):
+    def draw_xyz(self, data=None, plot_image_type="jpg", *args, **kwargs):
         if data is None:
             data = self.data_graph
 
@@ -1192,10 +1192,10 @@ class ImageBatch(gbu.core.Container):
                 imout,
                 data.rvec.iloc[ii].values.astype(np.float64),
                 data.tvec.iloc[ii].values.astype(np.float64),
-                dimension=0.010,
                 camera_matrix=self.camera_matrix,
-                distortion_coefficients=self.distortion_coefficients,
-                thickness=2,
+                distortion_coefficients=self.distortion_coefficients,                
+                *args,
+                **kwargs
             )
 
             self.output_directory = checkdir(
