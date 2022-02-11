@@ -271,7 +271,7 @@ def find_geometrical_feature(targetPoseBatch, refPoseBatch=None,
                     out[i, 3:] = T_target2target
 
                     print("optimizing\t", datetime.now().strftime(
-                        "%H:%M:%S"), end='\r')
+                        "%H:%M:%S"),f"\tmean resisdu = {out.mean()}", end='\r')
                 return out.flatten()
 
             data = targetPoseBatch
@@ -282,7 +282,8 @@ def find_geometrical_feature(targetPoseBatch, refPoseBatch=None,
                     data.rvecs[i],
                     data.tvecs[i])
             Nun = 6 + Nim + 4  # Number of unknown parameters in optimization
-            X0 = np.zeros(Nun)
+            X0[:3] = np.ones(3)
+            X0[10:] = 1  # Init theta with non zeros angles
             sol = optimize.least_squares(cost,
                                          X0,
                                          method="lm",
@@ -333,7 +334,7 @@ def find_geometrical_feature(targetPoseBatch, refPoseBatch=None,
                     out[i, 3:] = T_target2target
 
                     print("optimizing\t", datetime.now().strftime(
-                        "%H:%M:%S"), end='\r')
+                        "%H:%M:%S"),f"\tmean resisdu = {out.mean()}", end='\r')
                 return out.flatten()
 
             data_target = targetPoseBatch  # driller
@@ -352,6 +353,7 @@ def find_geometrical_feature(targetPoseBatch, refPoseBatch=None,
 
             Nun = 6 + Nim + 4  # Number of unknown parameters in optimization
             X0 = np.zeros(Nun)
+            X0[:3] = np.ones(3)
             X0[10:] = 1  # Init theta with non zeros angles
             sol = optimize.least_squares(cost, 
                                          X0,
