@@ -3,3 +3,4 @@
 *.h5
 *.json
 !*.zip
+!dataset_subsample/metadata.json
