@@ -590,7 +590,7 @@ def get_graph(data):
                                              prefix="m")
     G = nx.Graph()
     dp = data
-    successful_detects = dp[dp.flags.pose].detects.unique()
+    successful_detects = dp[dp.flag.pose].detects.unique()
     dd = data.loc[data['detects'].isin(successful_detects)]
     for i, row in dd.iterrows():
         im = im_dicin[row.images.values[0]]
@@ -808,9 +808,9 @@ def get_occurencies(data, cycles, criterion=0.25):
 
 
 def occurency_analysis(data, alpha_criterion=1.5):
-    no_pose_class = data.loc[(data.flags.pose == False)]
-    out_of_cycle_class = data.loc[(data.flags.pose == True) & (
-        data.flags.graph.processed == False)]
+    no_pose_class = data.loc[(data.flag.pose == False)]
+    out_of_cycle_class = data.loc[(data.flag.pose == True) & (
+        data.flag.graph.processed == False)]
 
     list_of_interest = [
         ('markers', 'label', ''),
@@ -819,13 +819,13 @@ def occurency_analysis(data, alpha_criterion=1.5):
         ('occurency', 'bad', ''),
         ('image', 'fname', ''), ]
 
-    full_class = data.loc[(data.flags.pose == True) & (
-        data.flags.graph.processed == True)][list_of_interest]
+    full_class = data.loc[(data.flag.pose == True) & (
+        data.flag.graph.processed == True)][list_of_interest]
 
     # handle truely bad poses
     ind_bad = full_class.loc[(full_class.occurency.good == 0)].index
     data.loc[data.index.isin(ind_bad),
-             ('flags', 'graph', 'rejected')] = True
+             ('flag', 'graph', 'rejected')] = True
 
     bad_class = full_class.loc[full_class.occurency.good == 0]
     not_bad_class = full_class.loc[full_class.occurency.good != 0]
@@ -842,7 +842,7 @@ def occurency_analysis(data, alpha_criterion=1.5):
     # spot prim valid poses
     prim_valid_poses = known_class.loc[(
         ~known_class['detects'].isin(detects_toChoose))].index.values
-    data.loc[prim_valid_poses, ('flags', 'graph', 'validated')] = True
+    data.loc[prim_valid_poses, ('flag', 'graph', 'validated')] = True
 
     # spot 2nd valid poses
     toChoose_class = known_class.loc[known_class['detects'].isin(
@@ -861,26 +861,26 @@ def occurency_analysis(data, alpha_criterion=1.5):
         alpha = count_max / count_min
 
         if alpha >= alpha_criterion:
-            data.loc[good_pose, ('flags', 'graph', 'validated')] = True
-            data.loc[bad_pose, ('flags', 'graph', 'rejected')] = True
+            data.loc[good_pose, ('flag', 'graph', 'validated')] = True
+            data.loc[bad_pose, ('flag', 'graph', 'rejected')] = True
         else:
-            data.loc[good_pose, ('flags', 'graph', 'validated')] = False
-            data.loc[bad_pose, ('flags', 'graph', 'rejected')] = False
+            data.loc[good_pose, ('flag', 'graph', 'validated')] = False
+            data.loc[bad_pose, ('flag', 'graph', 'rejected')] = False
 
-    ambigus_class = data.loc[(data.flags.pose == True) &
-                             (data.flags.graph.processed == True) &
-                             (data.flags.graph.validated == False) &
-                             (data.flags.graph.rejected == False)]
+    ambigus_class = data.loc[(data.flag.pose == True) &
+                             (data.flag.graph.processed == True) &
+                             (data.flag.graph.validated == False) &
+                             (data.flag.graph.rejected == False)]
 
-    bad_class = data.loc[(data.flags.pose == True) &
-                         (data.flags.graph.processed == True) &
-                         (data.flags.graph.validated == False) &
-                         (data.flags.graph.rejected == True)]
+    bad_class = data.loc[(data.flag.pose == True) &
+                         (data.flag.graph.processed == True) &
+                         (data.flag.graph.validated == False) &
+                         (data.flag.graph.rejected == True)]
 
-    good_class = data.loc[(data.flags.pose == True) &
-                          (data.flags.graph.processed == True) &
-                          (data.flags.graph.validated == True) &
-                          (data.flags.graph.rejected == False)]
+    good_class = data.loc[(data.flag.pose == True) &
+                          (data.flag.graph.processed == True) &
+                          (data.flag.graph.validated == True) &
+                          (data.flag.graph.rejected == False)]
 
     print("full data \t= {0} poses".format(data.shape[0]))
     print("no valid pose \t= {0} poses".format(no_pose_class.shape[0]))
