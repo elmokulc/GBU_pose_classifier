@@ -468,9 +468,45 @@ class ImageBatchCalibration(gbu.utils.ImageBatch):
             self.graph_calibration()
             self.optimize_calibration()
 
+    def markers_lost_checking(self):
+        group_calib_img =self.data_good_core.images.unique()
+        group_calib_detect =self.data_good_core.detects.unique()
+        group_calib_pose =self.data_good_core.poses.unique()
+        self.data_good_core_img = self.data_img.loc[group_calib_img]
+        self.data_good_core_detect = self.data_detect.loc[group_calib_detect]
+        self.data_good_core_pose = self.data_pose.loc[group_calib_pose]
+
+        # CHECK IF SOME MARKERS HAVE BEEN LOST
+        mks_in = self.data_detect.markers.label.unique()
+        mks_out =self.data_good_core.markers.label.unique()
+        mks_missing = set(mks_in) - set(mks_out)
+        if len(mks_missing) != 0:
+            print("/!\\ we lose marker(s) : {0}".format(mks_missing))
+
+
+    def get_good_class(self, plot_markers=False, criterion=1, deph_max=10, alpha_criterion=1.5, atomic_cycle=False, enabled_central_mk=True):
+        data, graph, central_mk, cycles = self.get_graph_data()
+
+        self.data_raw = gbu.utils.get_occurencies(
+            data=data, cycles=cycles, criterion=criterion)
+        
+        self.data_good_core = gbu.utils.get_good_core(
+            data=self.data_raw,
+            criterion=criterion,
+            deph_max=deph_max,
+            alpha_criterion=alpha_criterion,
+            atomic_cycle=atomic_cycle)
+        
+        self.markers_lost_checking()
+        
+        if plot_markers:
+            self.draw_xyz(data=self.data_good_core)
+            
+        return self.data_good_core
+
     def graph_calibration(self, reference=None):
         cpose, mpose, graph, multigraph = graph_calibration(
-            data=self.data_graph, reference=reference
+            data=self.data_good_core, reference=reference
         )
 
         self.centralMarker = mpose.index[mpose.central][0]
@@ -509,7 +545,7 @@ class ImageBatchCalibration(gbu.utils.ImageBatch):
         """
         Returns the observed 2D points in data.
         """
-        data = self.data_graph
+        data = self.data_good_core
         return data.p2d.values.reshape(len(data), 4, 2)
 
     def markers_on_images(self, index=-1):
@@ -518,7 +554,7 @@ class ImageBatchCalibration(gbu.utils.ImageBatch):
         image.
         """
         return gbu.calibration.markers_on_images(index=index,
-                                                 data_detect=self.data_graph,
+                                                 data_detect=self.data_good_core,
                                                  poseBatches=self.poseBatches,
                                                  composites=self.composites)
 
@@ -619,7 +655,7 @@ class ImageBatchCalibration(gbu.utils.ImageBatch):
         """
         Returns the reprojection
         """
-        data = self.data_graph.set_index(
+        data = self.data_good_core.set_index(
             [("image", "fname"), ("markers", "label"), ("poses", "")])
         data.index.names = ["image", "marker", "pose"]
         data = data.p2d.swaplevel(0, 1, axis=1).stack()
@@ -820,9 +856,9 @@ class ImageBatchCalibration(gbu.utils.ImageBatch):
             color_cycle = "bgmcy"
             quadLoc = np.array([0, 1, 2, 3, 0])
             for image_ind, imData in data.groupby(level=0):
-                imagePath = self.data_graph_img.loc[image_ind].image.path.values.astype(str)[
+                imagePath = self.data_good_core_img.loc[image_ind].image.path.values.astype(str)[
                     0]
-                fname = self.data_graph_img.loc[image_ind].image.fname.values.astype(str)[
+                fname = self.data_good_core_img.loc[image_ind].image.fname.values.astype(str)[
                     0]
                 rgb = io.imread(imagePath + fname)
                 if len(rgb.shape) == 2:
@@ -864,10 +900,10 @@ class ImageBatchCalibration(gbu.utils.ImageBatch):
         locs = data.loc[data[keys[-1]].values < criterion_pixel].index.get_level_values(
             'pose').unique().values.tolist()
         if inplace:
-            self.data_graph = self.data_graph.loc[locs].sort_index()
-            return locs, self.data_graph
+            self.data_good_core = self.data_good_core.loc[locs].sort_index()
+            return locs, self.data_good_core
         else:
-            return locs, self.data_graph.loc[locs]
+            return locs, self.data_good_core.loc[locs]
 
     def print_elapsed_time(self):
         while self._run_flag:
@@ -1198,9 +1234,9 @@ class ImageBatchCompositePose(gbu.utils.ImageBatch):
             color_cycle = "bgmcy"
             quadLoc = np.array([0, 1, 2, 3, 0])
             for image_ind, imData in data.groupby(level=0):
-                imagePath = self.data_graph_img.loc[image_ind].image.path.values.astype(str)[
+                imagePath = self.data_good_core_img.loc[image_ind].image.path.values.astype(str)[
                     0]
-                fname = self.data_graph_img.loc[image_ind].image.fname.values.astype(str)[
+                fname = self.data_good_core_img.loc[image_ind].image.fname.values.astype(str)[
                     0]
                 rgb = io.imread(imagePath + fname)
                 if len(rgb.shape) == 2:

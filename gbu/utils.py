@@ -1168,46 +1168,19 @@ class ImageBatch(gbu.core.Container):
         data_temp = merge_dataFrames(self.data_pose, self.data_detect)
         return merge_dataFrames(data_temp, self.data_img)
 
-    def get_graph_data(self, plot_markers=False, criterion=1, deph_max=10, alpha_criterion=1.5, atomic_cycle=False, enabled_central_mk=True):
+    def get_graph_data(self, atomic_cycle=False, enabled_central_mk=True):
         data = self.merge_all()
         graph = get_graph(data)
         central_mk = get_central_marker(data) if enabled_central_mk else None
         cycles = get_cycles(data=data, graph=graph,
                             atomic_cycle=atomic_cycle, root=central_mk)
-        self.data_raw = get_occurencies(
-            data=data, cycles=cycles, criterion=criterion)
-        self.data_graph = get_good_core(
-            data=self.data_raw,
-            criterion=criterion,
-            deph_max=deph_max,
-            alpha_criterion=alpha_criterion,
-            atomic_cycle=atomic_cycle)
 
-        self.markers_lost_checking()
+        return data, graph, central_mk, cycles
 
-        if plot_markers:
-            self.draw_xyz()
-
-        return self.data_graph
-
-    def markers_lost_checking(self):
-        group_calib_img = self.data_graph.images.unique()
-        group_calib_detect = self.data_graph.detects.unique()
-        group_calib_pose = self.data_graph.poses.unique()
-        self.data_graph_img = self.data_img.loc[group_calib_img]
-        self.data_graph_detect = self.data_detect.loc[group_calib_detect]
-        self.data_graph_pose = self.data_pose.loc[group_calib_pose]
-
-        # CHECK IF SOME MARKERS HAVE BEEN LOST
-        mks_in = self.data_detect.markers.label.unique()
-        mks_out = self.data_graph.markers.label.unique()
-        mks_missing = set(mks_in) - set(mks_out)
-        if len(mks_missing) != 0:
-            print("/!\\ we lose marker(s) : {0}".format(mks_missing))
 
     def draw_xyz(self, data=None, plot_image_type="jpg", *args, **kwargs):
         if data is None:
-            data = self.data_graph
+            data = self.data_pose
 
         Np = len(data)
         pbar = tqdm(range(Np))
