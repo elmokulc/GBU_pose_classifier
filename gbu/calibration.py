@@ -498,11 +498,11 @@ class ImageBatchCalibration(gbu.utils.ImageBatch):
         self.history.append("graph")
         return composite, poseBatch
 
-    def plot_graph(self, path=None):
+    def plot_graph(self, path=None, *arg, **kwargs):
         """
         Plots the graph.
         """
-        gbu.utils.plot_graph(self.graph, self.multigraph, path=path)
+        gbu.utils.plot_graph(graph=self.graph, path=path, *arg, **kwargs)
 
     def observed_points_2D(self):
         """

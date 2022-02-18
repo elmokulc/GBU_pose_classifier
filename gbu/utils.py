@@ -612,45 +612,39 @@ def string_map(ids, prefix="", zfill=True):
     return dic_in, dic_out
 
 
-def plot_graph(G, MG, data, path=None):
+def plot_graph(graph, colors = None, title = "Graph", figsize=None, fname=None, show_legend=True, *args, **kwargs):
     """
     Plots the Graph.
     """
-    markers = list(MG.nodes)
-    centralMarkers = nx.center(MG)
-    nonCentralMarkers = set(markers) - set(nx.center(MG))
-    images = list(set(G.nodes) - set(markers))
-    plt.figure()
-    pos = nx.spring_layout(G)
-    nsize = 1000
-    nx.draw_networkx_nodes(
-        G,
-        pos,
-        nodelist=list(centralMarkers),
-        node_color="g",
-        node_size=nsize,
-        alpha=0.8,
-    )
-    nx.draw_networkx_nodes(
-        G,
-        pos,
-        nodelist=list(nonCentralMarkers),
-        node_color="r",
-        node_size=nsize,
-        alpha=0.8,
-    )
-    nx.draw_networkx_nodes(
-        G, pos, nodelist=images, node_color="b", node_size=nsize, alpha=0.8
-    )
-    nx.draw_networkx_edges(G, pos, width=2.0, alpha=0.5)
-    labels = {node: str(node) for node in G.nodes}
-    nx.draw_networkx_labels(G, pos, labels, font_size=16)
-    if path is None:
-        plt.show()
-    else:
-        plt.savefig(path)
-        plt.close()
+    
+    if colors is None:
+        colors = ["blue", "red"]
+    color_map = []
 
+    for node in graph.nodes:
+        if node.startswith('i'):
+            color_map.append('red')
+        else:
+            color_map.append('blue')
+    nx.draw(graph, node_color=color_map, with_labels=True, font_weight='bold')
+    plt.draw()
+    plt.title(title)
+
+    f = lambda m,c: plt.plot([],[],marker='o', color=c, ls="none")[0]
+    handles = [f("s", colors[i]) for i in range(2)]
+    
+    if show_legend:
+        labels = ["Markers", "Images"]
+        plt.legend(handles, labels,bbox_to_anchor=(0.72, .05),
+                ncol=3, fancybox=True, shadow=True, *args, **kwargs)
+
+    if figsize is not None:
+        plt.figure(figsize = figsize)
+
+    if fname is not None:
+        plt.savefig(fname,*args,**kwargs)
+
+    plt.show()
 
 def graph_path_RTs(data, cycle):
     """
