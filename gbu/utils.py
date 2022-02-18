@@ -26,7 +26,6 @@ import random
 import warnings
 
 import cv2
-import matplotlib as mpl
 import matplotlib.pyplot as plt
 import more_itertools
 import networkx as nx

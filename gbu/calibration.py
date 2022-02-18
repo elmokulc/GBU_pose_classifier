@@ -16,15 +16,12 @@
 # GBU/CALIBRATION
 ################################################################################
 
-
 import copy
-import itertools
 import os
 import threading
 import time
 ################################################################################
 # IMPORTS
-from collections import OrderedDict
 from datetime import datetime
 
 import cv2
