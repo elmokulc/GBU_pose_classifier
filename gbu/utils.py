@@ -285,19 +285,33 @@ def create_pose_dataFrame():
     return data_pose
 
 
-def dump_dataframe_HDF(img_dir="./",
+def dump_dataframe(img_dir="./",
                        meta_filename='metadata.h5',
                        key=None,
+                       protocol=5,
                        dataframe=None):
 
+    ext = meta_filename.split('.')[-1]
+    
+    if ext =="h5":
+        print("Dataframe export in HDF5")
     dataframe.to_hdf(img_dir + meta_filename, key=key, mode='w')
 
+    if ext =="p":
+        print("Dataframe export in Pickle")
+        dataframe.to_pickle(img_dir + meta_filename, protocol=protocol)
 
-def cherry_dataframe_HDF(img_dir="./",
+
+def read_dataframe(img_dir="./",
                          meta_filename='metadata.h5',
                          key=None):
 
+
+    ext = meta_filename.split('.')[-1]
+    if ext =="h5":
     return pd.read_hdf(img_dir + meta_filename, key)
+    if ext =="p":
+        return pd.read_pickle(img_dir + meta_filename)
 
 
 def load_image_batch(data_img=None, directory="./", format=".tif", slice=None):
@@ -1068,6 +1082,7 @@ class ImageBatch(gbu.core.Container):
                        plot_markers=False,
                        plot_image_type="jpg",
                        meta_filename="metadata.h5",
+                       protocol=5,
                        enforce=False):
         """
         Wrapper
@@ -1081,12 +1096,15 @@ class ImageBatch(gbu.core.Container):
                                               data_detect=self.data_detect,
                                               plot_markers=plot_markers,
                                               plot_image_type=plot_image_type)
-            dump_dataframe_HDF(img_dir=self.input_directory,
+            dump_dataframe(img_dir=self.input_directory,
                                key='detects',
+                               meta_filename=meta_filename,
+                               protocol=protocol,
                                dataframe=self.data_detect)
 
         elif os.path.exists(self.input_directory + meta_filename):
-            self.data_detect = cherry_dataframe_HDF(img_dir=self.input_directory,
+            self.data_detect = read_dataframe(img_dir=self.input_directory,
+                                                  meta_filename=meta_filename,
                                                     key="detects")
         else:
             self.data_detect = detect_markers(parameters=self.parameters,
@@ -1097,8 +1115,10 @@ class ImageBatch(gbu.core.Container):
                                               data_detect=self.data_detect,
                                               plot_markers=plot_markers,
                                               plot_image_type=plot_image_type)
-            dump_dataframe_HDF(img_dir=self.input_directory,
+            dump_dataframe(img_dir=self.input_directory,
                                key='detects',
+                               meta_filename=meta_filename,
+                               protocol=protocol,
                                dataframe=self.data_detect)
 
         return self.data_detect
