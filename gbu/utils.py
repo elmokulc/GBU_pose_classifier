@@ -719,23 +719,39 @@ def graph_path_RT(graph, data, nodeIn, nodeOut, weight="dist"):
     return R, T
 
 
+def get_residual_RT(permutations_poses):
+    """[summary]
+
+    Args:
+        permutations_poses (array): (NxMx2x3) array where M equal to cycle lenght, N = 2**M
+
+    Returns:
+        [array]: (N x 2) array of residuals R and T of every permutations of cycle
+    """
+    Np = permutations_poses.shape[0]
+    Nl = permutations_poses.shape[1]
+    residuals = np.zeros((Np,2,3))
+
+    for p in range(Np):
+        R = np.zeros(3)
+        T = np.zeros(3)
+        for t in range(Nl):
+            Re, Te = permutations_poses[p,t]
+            R, T = compose_RT(R, T, Re, Te)
+        
+        residuals[p,0,:]=R
+        residuals[p,1,:]=T
+   
+    return residuals
+
 def cycle_permutation_residuals(edges_ids, poses, size_of_cycle=1):
     """
     Tests all the possible permutations.
     """
 
     permutations = list(itertools.product(*edges_ids))
-    residual_RT = []
-    prbar = tqdm(range(len(permutations)), leave=False)
-    for jj in prbar:
-        R = np.zeros(3, dtype=np.float64)
-        T = np.zeros(3, dtype=np.float64)
-        for edge_id in permutations[jj]:
-            prbar.set_description(
-                "Working on permuation: {0}".format(permutations[jj]))
-            Re, Te = poses[edge_id]
-            R, T = compose_RT(R, T, Re, Te)
-        residual_RT.append([R, T])
+    permutations_poses = np.array([poses[rt] for per in permutations for rt in per]).reshape(-1,len(edges_ids),2,3)
+    residual_RT=get_residual_RT(permutations_poses)
 
     T_residuals = np.linalg.norm(
         np.array(residual_RT)[:, 1], axis=1) / size_of_cycle
