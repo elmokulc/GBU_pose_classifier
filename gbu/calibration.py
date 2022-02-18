@@ -575,7 +575,7 @@ class ImageBatchCalibration(gbu.utils.ImageBatch):
         p2d = [p2d[i][locs[i]] for i in range(len(rvecs))]
         return p2d
 
-    def optimize_calibration(self, from_index=-1):
+    def optimize_calibration(self, from_index=-1, verbose=False):
         """
         Optimizes the calibation using LM on reprojection error.
         """
@@ -635,10 +635,11 @@ class ImageBatchCalibration(gbu.utils.ImageBatch):
         nonRefMarkers = ((compo.ids == centralMarker) == False)
         args = (nonRefMarkers, p2do, locs, compo, poseBatch,)
         X0 = flatten_inputs(nonRefMarkers, compo, poseBatch)
-        self.t0 = time.time()
-        t = threading.Thread(target=self.print_elapsed_time)
-        self._run_flag = True
-        t.start()
+        if verbose:
+            self.t0 = time.time()
+            t = threading.Thread(target=self.print_elapsed_time)
+            self._run_flag = True
+            t.start()
         sol = optimize.least_squares(
             cost_function, X0,
             method="lm",
@@ -646,8 +647,9 @@ class ImageBatchCalibration(gbu.utils.ImageBatch):
             ftol=1.0e-12,
             xtol=1.0e-12,
             gtol=1.e-10)
-        self._run_flag = False
-        t.join()
+        if verbose:
+            self._run_flag = False
+            t.join()
         expand_inputs(sol.x, nonRefMarkers, compo, poseBatch)
         return compo, poseBatch, sol
 

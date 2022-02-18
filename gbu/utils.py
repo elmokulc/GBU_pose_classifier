@@ -290,13 +290,13 @@ def dump_dataframe(img_dir="./",
                        key=None,
                        protocol=5,
                        dataframe=None):
-
+    
     ext = meta_filename.split('.')[-1]
     
     if ext =="h5":
         print("Dataframe export in HDF5")
-    dataframe.to_hdf(img_dir + meta_filename, key=key, mode='w')
-
+        dataframe.to_hdf(img_dir + meta_filename, key=key, mode='w')
+        
     if ext =="p":
         print("Dataframe export in Pickle")
         dataframe.to_pickle(img_dir + meta_filename, protocol=protocol)
@@ -305,11 +305,11 @@ def dump_dataframe(img_dir="./",
 def read_dataframe(img_dir="./",
                          meta_filename='metadata.h5',
                          key=None):
-
+    
 
     ext = meta_filename.split('.')[-1]
     if ext =="h5":
-    return pd.read_hdf(img_dir + meta_filename, key)
+        return pd.read_hdf(img_dir + meta_filename, key)
     if ext =="p":
         return pd.read_pickle(img_dir + meta_filename)
 
@@ -748,11 +748,11 @@ def cycle_permutation_residuals(edges_ids, poses, size_of_cycle=1):
     """
     Tests all the possible permutations.
     """
-
+    
     permutations = list(itertools.product(*edges_ids))
     permutations_poses = np.array([poses[rt] for per in permutations for rt in per]).reshape(-1,len(edges_ids),2,3)
     residual_RT=get_residual_RT(permutations_poses)
-
+    
     T_residuals = np.linalg.norm(
         np.array(residual_RT)[:, 1], axis=1) / size_of_cycle
     R_residuals = np.linalg.norm(
@@ -1079,7 +1079,7 @@ class ImageBatch(gbu.core.Container):
                 self.output_directory = self.input_directory + "/_outputs/"
 
             self.load_image_batch(directory=self.input_directory)
-            self.detect_markers(plot_markers=True, enforce=False)
+            self.detect_markers(plot_markers=True, enforce=False, **kwargs)
 
         if output_directory is None:
             self.output_directory = "./_outputs/"
