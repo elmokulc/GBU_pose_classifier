@@ -40,6 +40,10 @@ from tqdm import tqdm
 
 import gbu
 
+if [e for e in list(os.environ) if e == "MPLBACKEND"]:
+    from tqdm import tqdm_notebook as tqdm
+
+
 
 def set_composite_metric(compo, marker_size=None, marker_coeff=None, inplace=False):
     """

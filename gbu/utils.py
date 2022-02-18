@@ -38,6 +38,9 @@ from tqdm import tqdm
 
 import gbu
 
+if [e for e in list(os.environ) if e == "MPLBACKEND"]:
+    from tqdm import tqdm_notebook as tqdm
+
 warnings.filterwarnings('ignore')
 
 
