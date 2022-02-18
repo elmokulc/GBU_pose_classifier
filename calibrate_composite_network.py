@@ -34,13 +34,13 @@ batch = gbu.calibration.ImageBatchCalibration(aruco_dict=aruco.DICT_6X6_250,
                                               distortion_coefficients=distortion_coefficients)
 
 batch.load_image_batch(directory=image_directory)
-batch.detect_markers(plot_markers=False, enforce=True)
+batch.detect_markers(plot_markers=False, enforce=False)
 batch.estimate_pose()
 
 print("Number of poses : {0}".format(len(batch.data_pose)))
 # STEP 2: GRAPH THEORY & PRE OPTIMIZATION EDUCATED GUESS
 print("#CREATING GRAPH")
-batch.get_graph_data(plot_markers=False, criterion=0.10, alpha_criterion=1.5)
+batch.get_good_class(plot_markers=False, criterion=0.10, alpha_criterion=1.5)
 batch.graph_calibration()
 
 # STEP 3: LEAST SQUARE OPTIMIZATION
@@ -49,7 +49,7 @@ t0 = time.time()
 compo, poseBatch, sol = batch.optimize_calibration()
 t1 = time.time()
 print("=> Ran optimization in {0}s for {1} poses".format(
-    (t1 - t0), len(batch.data_graph)))
+    (t1 - t0), len(batch.data_good_core)))
 
 # STEP 4 : PLOT RESULTS
 batch.plot_reprojection_errors(
@@ -59,5 +59,5 @@ batch.plot_reprojection_errors(
 
 # STEP 5 : EXPORTING AS JSON FILE
 compo = batch.composites[-1]
-compo.save(path="./vpcm.json")
+compo.save(path="./composite.json")
 
