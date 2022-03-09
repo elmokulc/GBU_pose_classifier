@@ -294,11 +294,9 @@ def dump_dataframe(img_dir="./",
     ext = meta_filename.split('.')[-1]
     
     if ext =="h5":
-        print("Dataframe export in HDF5")
         dataframe.to_hdf(img_dir + meta_filename, key=key, mode='w')
         
     if ext =="p":
-        print("Dataframe export in Pickle")
         dataframe.to_pickle(img_dir + meta_filename, protocol=protocol)
 
 
@@ -1099,7 +1097,9 @@ class ImageBatch(gbu.core.Container):
                        plot_image_type="jpg",
                        meta_filename="metadata.h5",
                        protocol=5,
-                       enforce=False):
+                       enforce=False,
+                       *args,
+                       **kwargs):
         """
         Wrapper
         """
@@ -1130,7 +1130,8 @@ class ImageBatch(gbu.core.Container):
                                               data_img=self.data_img,
                                               data_detect=self.data_detect,
                                               plot_markers=plot_markers,
-                                              plot_image_type=plot_image_type)
+                                              plot_image_type=plot_image_type,
+                                              )
             dump_dataframe(img_dir=self.input_directory,
                                key='detects',
                                meta_filename=meta_filename,
@@ -1213,35 +1214,62 @@ class ImageBatch(gbu.core.Container):
                       )
 
     def draw_markers(self, plot_image_type='jpg'):
-        def draw_panda_func(sub_df):
-            ind = sub_df.images.values[0]
-            path = self.data_img.image.path.loc[ind]
-            fname = self.data_img.image.fname.loc[ind]
+        if not [e for e in list(os.environ) if e == "MPLBACKEND"]:
+            def draw_panda_func(sub_df):
+                ind = sub_df.images.values[0]
+                path = self.data_img.image.path.loc[ind]
+                fname = self.data_img.image.fname.loc[ind]
 
-            frame = io.imread(path + fname)
-            if len(frame.shape) == 2:
-                imout = np.stack([frame, frame, frame], axis=2)
-            else:
-                imout = frame
+                frame = io.imread(path + fname)
+                if len(frame.shape) == 2:
+                    imout = np.stack([frame, frame, frame], axis=2)
+                else:
+                    imout = frame
 
-            ids2D = sub_df.markers.label.values.astype(np.int64)
-            points2D = sub_df.p2d.values.astype(np.float32)
-            draw_markers(
-                ids2D, points2D, imout, rejected=None)
-            output_directory = checkdir(
-                directory=self.output_directory)
+                ids2D = sub_df.markers.label.values.astype(np.int64)
+                points2D = sub_df.p2d.values.astype(np.float32)
+                draw_markers(
+                    ids2D, points2D, imout, rejected=None)
+                output_directory = checkdir(
+                    directory=self.output_directory)
 
-            io.imsave(
-                self.output_directory +
-                fname.split(".")[-2].split("/")[-1] +
-                "_markers." + plot_image_type,
-                imout,
-            )
-            return sub_df
-        tqdm.pandas()
-        print("Drawing markers...")
-        self.data_detect.groupby('images').progress_apply(draw_panda_func)
-        print("Drawing markers done")
+                io.imsave(
+                    self.output_directory +
+                    fname.split(".")[-2].split("/")[-1] +
+                    "_markers." + plot_image_type,
+                    imout,
+                )
+                return sub_df
+            tqdm.pandas()
+            print("Drawing markers...")
+            self.data_detect.groupby('images').progress_apply(draw_panda_func)
+            print("Drawing markers done")
+        else:
+            for key, sub_df in self.data_detect.groupby('images'):
+                ind = sub_df.images.values[0]
+                path = self.data_img.image.path.loc[ind]
+                fname = self.data_img.image.fname.loc[ind]
+
+                frame = io.imread(path + fname)
+                if len(frame.shape) == 2:
+                    imout = np.stack([frame, frame, frame], axis=2)
+                else:
+                    imout = frame
+
+                ids2D = sub_df.markers.label.values.astype(np.int64)
+                points2D = sub_df.p2d.values.astype(np.float32)
+                draw_markers(
+                    ids2D, points2D, imout, rejected=None)
+                output_directory = checkdir(
+                    directory=self.output_directory)
+
+                io.imsave(
+                    self.output_directory +
+                    fname.split(".")[-2].split("/")[-1] +
+                    "_markers." + plot_image_type,
+                    imout,
+                )
+                
 
     def get_central_marker(self):
         self.central_mk = get_central_marker(self.merge_all())
